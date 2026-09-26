@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "论坛复盘报告",
+  "description": "五阶段分开统计，每个数字带可下钻明细；弱凭证剔除与撤回项目单列。",
+  "type": "object",
+  "required": ["generatedAt", "countingRule", "totals", "stages", "byCategory", "projects", "weakEvidenceRejections", "withdrawnProjects"],
+  "properties": {
+    "generatedAt": { "type": "string" },
+    "countingRule": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "totals": {
+      "type": "object",
+      "required": ["projects", "activeProjects"],
+      "properties": {
+        "projects": { "type": "integer", "minimum": 0 },
+        "activeProjects": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/stageBucket" }
+    },
+    "byCategory": {
+      "type": "object",
+      "minProperties": 4,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["category", "categoryLabel", "stages"],
+        "properties": {
+          "category": { "type": "string" },
+          "categoryLabel": { "type": "string" },
+          "stages": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/stageBucket" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["projectKey", "title", "category", "currentVersion", "status", "highestReachedStage", "stages"],
+        "properties": {
+          "projectKey": { "type": "string", "minLength": 1 },
+          "title": { "type": "string" },
+          "category": { "enum": ["semiconductor", "bioelectronics", "finance", "software"] },
+          "categoryLabel": { "type": "string" },
+          "currentVersion": { "type": "integer", "minimum": 1 },
+          "status": { "enum": ["draft", "active", "superseded", "withdrawn"] },
+          "statusLabel": { "type": "string" },
+          "highestReachedStage": { "type": ["string", "null"], "enum": ["contact", "signing", "resource", "validation", "order", null] },
+          "highestReachedStageLabel": { "type": "string" },
+          "withdrawnReason": { "type": ["string", "null"] },
+          "changesNote": { "type": ["string", "null"] },
+          "priorVersions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["version", "status", "affectedMilestones"],
+              "properties": {
+                "intentId": { "type": "string" },
+                "version": { "type": "integer" },
+                "status": { "type": "string" },
+                "statusLabel": { "type": "string" },
+                "changesNote": { "type": ["string", "null"] },
+                "affectedMilestones": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["stage", "title", "status"],
+                    "properties": {
+                      "stage": { "type": "string" },
+                      "stageLabel": { "type": "string" },
+                      "title": { "type": "string" },
+                      "status": { "enum": ["blocked", "terminated"] },
+                      "reason": { "type": ["string", "null"] },
+                      "affectedByVersion": { "type": ["integer", "null"] }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "required": ["stage", "state"],
+              "properties": {
+                "stage": { "enum": ["contact", "signing", "resource", "validation", "order"] },
+                "stageLabel": { "type": "string" },
+                "state": { "enum": ["not_started", "pending", "open", "done", "blocked", "terminated"] },
+                "stateLabel": { "type": "string" },
+                "milestoneId": { "type": "string" },
+                "weakOnly": { "type": "boolean" },
+                "drill": { "$ref": "#/$defs/drillItem" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "weakEvidenceRejections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["projectKey", "stage", "reason", "evidence"],
+        "properties": {
+          "projectKey": { "type": "string" },
+          "projectTitle": { "type": "string" },
+          "intentId": { "type": "string" },
+          "version": { "type": "integer" },
+          "intentStatus": { "type": "string" },
+          "milestoneId": { "type": "string" },
+          "stage": { "type": "string" },
+          "stageLabel": { "type": "string" },
+          "reason": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "weak"],
+              "properties": {
+                "type": { "type": "string" },
+                "typeLabel": { "type": "string" },
+                "ref": { "type": ["string", "null"] },
+                "at": { "type": "string" },
+                "weak": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "withdrawnProjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["projectKey", "version", "factsRetained", "nextStepsTerminated"],
+        "properties": {
+          "projectKey": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "categoryLabel": { "type": "string" },
+          "version": { "type": "integer" },
+          "withdrawnAt": { "type": ["string", "null"] },
+          "withdrawnBy": { "type": ["object", "null"] },
+          "reason": { "type": ["string", "null"] },
+          "factsRetained": { "type": "array", "items": { "type": "string" } },
+          "nextStepsTerminated": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["stage", "title"],
+              "properties": {
+                "stage": { "type": "string" },
+                "stageLabel": { "type": "string" },
+                "title": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stageBucket": {
+      "type": "object",
+      "required": ["stage", "stageLabel", "count", "items"],
+      "properties": {
+        "stage": { "enum": ["contact", "signing", "resource", "validation", "order"] },
+        "stageLabel": { "type": "string" },
+        "count": { "type": "integer", "minimum": 0 },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/drillItem" } }
+      },
+      "additionalProperties": false
+    },
+    "drillItem": {
+      "type": "object",
+      "required": ["projectKey", "stage", "responsibleParties", "scope", "prerequisites", "evidence", "version"],
+      "properties": {
+        "projectKey": { "type": "string", "minLength": 1 },
+        "projectTitle": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryLabel": { "type": "string" },
+        "intentId": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "milestoneId": { "type": "string" },
+        "stage": { "enum": ["contact", "signing", "resource", "validation", "order"] },
+        "stageLabel": { "type": "string" },
+        "milestoneTitle": { "type": "string" },
+        "status": { "type": "string" },
+        "responsibleParties": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "role": { "type": "string" },
+              "roleLabel": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "scope": { "type": "string", "minLength": 1 },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "met"],
+            "properties": {
+              "kind": { "type": "string" },
+              "ref": { "type": ["string", "null"] },
+              "refLabel": { "type": ["string", "null"] },
+              "description": { "type": "string" },
+              "met": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "weak", "supportsStage"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "typeLabel": { "type": "string" },
+              "ref": { "type": ["string", "null"] },
+              "at": { "type": ["string", "null"] },
+              "note": { "type": "string" },
+              "uploadedBy": { "type": "object" },
+              "weak": { "type": "boolean" },
+              "supportsStage": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "verifiedAt": { "type": ["string", "null"] },
+        "commitments": { "type": "array" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

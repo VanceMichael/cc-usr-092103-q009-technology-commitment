@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>京台科技项目承诺管理后台</title>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,.10);
+    /* 五阶段序数色阶（已通过校验） */
+    --stage-1: #86b6ef; --stage-2: #3987e5; --stage-3: #256abf; --stage-4: #184f95; --stage-5: #0d366b;
+    /* 四类产业类目色 */
+    --cat-semiconductor: #2a78d6; --cat-bioelectronics: #eb6834;
+    --cat-finance: #1baf7a; --cat-software: #eda100;
+    --good: #0ca30c; --warning: #b98200; --serious: #c0532b; --critical: #d03b3b;
+    --danger-bg: #fdecec; --warn-bg: #fdf4e0; --ok-bg: #e9f6e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,.10);
+      --stage-1: #b7d3f6; --stage-2: #6da7ec; --stage-3: #3987e5; --stage-4: #256abf; --stage-5: #184f95;
+      --cat-semiconductor: #3987e5; --cat-bioelectronics: #d95926;
+      --cat-finance: #199e70; --cat-software: #c98500;
+      --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+      --danger-bg: #3a2020; --warn-bg: #382f18; --ok-bg: #1c3320;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,.10);
+    --stage-1: #b7d3f6; --stage-2: #6da7ec; --stage-3: #3987e5; --stage-4: #256abf; --stage-5: #184f95;
+    --cat-semiconductor: #3987e5; --cat-bioelectronics: #d95926;
+    --cat-finance: #199e70; --cat-software: #c98500;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --danger-bg: #3a2020; --warn-bg: #382f18; --ok-bg: #1c3320;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .frow:nth-child(1) .fbar,
+    :root:not([data-theme="light"]) .frow:nth-child(2) .fbar { color: #0b0b0b; }
+  }
+  :root[data-theme="dark"] .frow:nth-child(1) .fbar,
+  :root[data-theme="dark"] .frow:nth-child(2) .fbar { color: #0b0b0b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+    font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 20px 28px 14px; border-bottom: 1px solid var(--grid); background: var(--surface); }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); font-size: 13px; }
+  .bar-top { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  select, button, input, textarea { font: inherit; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--baseline); border-radius: 6px; padding: 6px 9px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--ink-2); }
+  button.primary { background: var(--stage-3); color: #fff; border-color: transparent; }
+  button.danger { color: var(--critical); border-color: var(--critical); }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  main { padding: 22px 28px 60px; max-width: 1180px; margin: 0 auto; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 20px; }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  h3 { font-size: 13px; margin: 16px 0 8px; color: var(--ink-2); }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+
+  /* KPI 行 */
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .kpi { border: 1px solid var(--grid); border-radius: 8px; padding: 12px 14px; background: var(--page); }
+  .kpi .n { font-size: 28px; font-weight: 650; }
+  .kpi .l { color: var(--ink-2); font-size: 12px; }
+  .kpi .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+  /* 漏斗 */
+  .funnel { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .frow { display: grid; grid-template-columns: 86px 1fr 46px; align-items: center; gap: 10px; }
+  .flabel { color: var(--ink-2); font-size: 13px; text-align: right; }
+  .ftrack { background: transparent; cursor: pointer; border: 0; padding: 0; text-align: left; }
+  .fbar { height: 26px; border-radius: 4px; min-width: 4px; display: flex; align-items: center;
+    padding-left: 10px; color: #fff; font-size: 12px; font-weight: 600; }
+  .frow:nth-child(1) .fbar { background: var(--stage-1); color: #0b0b0b; }
+  .frow:nth-child(2) .fbar { background: var(--stage-2); }
+  .frow:nth-child(3) .fbar { background: var(--stage-3); }
+  .frow:nth-child(4) .fbar { background: var(--stage-4); }
+  .frow:nth-child(5) .fbar { background: var(--stage-5); }
+  .frow.active .flabel { color: var(--ink); font-weight: 650; }
+  .frow.active .ftrack { outline: 2px solid var(--baseline); outline-offset: 3px; border-radius: 6px; }
+  .fcount { font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  /* 产业格子 */
+  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+  .cat { border: 1px solid var(--grid); border-radius: 8px; padding: 10px 12px; }
+  .cat .name { font-weight: 650; display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .cat .dot { width: 10px; height: 10px; border-radius: 3px; }
+  .cat .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; border: 1px solid var(--grid); border-radius: 999px; padding: 2px 9px;
+    color: var(--ink-2); cursor: pointer; background: transparent; }
+  .chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .chip.on { border-color: var(--ink); color: var(--ink); }
+
+  /* 表格与下钻 */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px;
+    border-bottom: 1px solid var(--grid); padding: 7px 8px; }
+  td { border-bottom: 1px solid var(--grid); padding: 8px; vertical-align: top; }
+  tr.item { cursor: pointer; }
+  tr.item:hover { background: var(--page); }
+  .drill { background: var(--page); }
+  .drill td { padding: 12px 16px; }
+  .kv { display: grid; grid-template-columns: 92px 1fr; gap: 4px 12px; margin: 6px 0; }
+  .kv dt { color: var(--muted); font-size: 12px; }
+  .kv dd { margin: 0; }
+  .tag { display: inline-block; font-size: 11px; border-radius: 4px; padding: 1px 7px; margin: 1px 3px 1px 0;
+    border: 1px solid var(--grid); color: var(--ink-2); }
+  .tag.weak { color: var(--critical); border-color: var(--critical); background: var(--danger-bg); }
+  .tag.ok { color: var(--good); border-color: var(--good); background: var(--ok-bg); }
+  .tag.secret { color: var(--serious); border-color: var(--serious); }
+  .state { font-size: 12px; white-space: nowrap; }
+  .state .glyph { margin-right: 5px; }
+  .s-done { color: var(--good); } .s-open { color: var(--stage-3); }
+  .s-pending { color: var(--muted); } .s-blocked { color: var(--warning); } .s-terminated { color: var(--critical); }
+
+  .timeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: 8px 0 4px; }
+  .tcell { border: 1px solid var(--grid); padding: 8px 10px; margin-left: -1px; position: relative; }
+  .tcell:first-child { margin-left: 0; border-radius: 7px 0 0 7px; }
+  .tcell:last-child { border-radius: 0 7px 7px 0; }
+  .tcell .ts { font-size: 12px; color: var(--muted); }
+  .tcell .tt { font-size: 12px; margin-top: 3px; }
+  .tcell.is-done { background: color-mix(in srgb, var(--stage-3) 9%, transparent); }
+  .tcell.is-open { border-color: var(--stage-3); }
+  .tcell.is-blocked { background: var(--warn-bg); }
+  .tcell.is-terminated { background: var(--danger-bg); }
+
+  .callout { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 8px 0; }
+  .callout.weak { background: var(--danger-bg); border: 1px solid var(--critical); }
+  .callout.note { background: var(--warn-bg); border: 1px solid var(--warning); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  label.f { display: block; font-size: 12px; color: var(--ink-2); margin: 8px 0 3px; }
+  .muted { color: var(--muted); }
+  .right { text-align: right; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+  .toast { position: fixed; right: 18px; bottom: 18px; max-width: 420px; border-radius: 8px; padding: 10px 14px;
+    background: var(--ink); color: var(--surface); font-size: 13px; display: none; z-index: 50; }
+  .toast.err { background: var(--critical); color: #fff; }
+  .party-line { font-size: 12px; color: var(--muted); }
+  details > summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  .seg-title { display: flex; gap: 8px; align-items: baseline; }
+  .ver { font-size: 12px; color: var(--muted); }
+  .badge { font-size: 11px; border-radius: 4px; padding: 1px 7px; border: 1px solid var(--grid); color: var(--ink-2); }
+  .badge.active { color: var(--good); border-color: var(--good); }
+  .badge.draft { color: var(--warning); border-color: var(--warning); }
+  .badge.superseded { color: var(--muted); }
+  .badge.withdrawn { color: var(--critical); border-color: var(--critical); }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>京台科技项目承诺管理后台</h1>
+  <div class="sub">接洽 · 签约 · 资源投入 · 验证完成 · 订单形成 —— 五阶段分账，逐项可下钻到责任主体、适用范围、前置条件与证据。样例数据均为虚构。</div>
+  <div class="bar-top">
+    <span class="party-line">当前查看身份（商业秘密按参与方隔离）：</span>
+    <select id="viewer"></select>
+    <button class="small" id="themeBtn" type="button">切换深浅色</button>
+    <span class="party-line" id="viewerHint"></span>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>复盘总览</h2>
+    <p class="hint">点击漏斗或产业标签可筛选下方明细表。仅“当前有效版本 + 专员已核验 + 强证据齐备”计入成果；名片等弱凭证单列剔除。</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="funnel" id="funnel" style="margin-top:16px"></div>
+    <h3>按合作类别分解</h3>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <section>
+    <h2 id="drillTitle">阶段明细下钻</h2>
+    <p class="hint" id="drillHint">点击任意行展开：责任主体、适用范围、前置条件满足情况、逐条证据及其是否足以支撑该阶段。</p>
+    <table>
+      <thead><tr><th style="width:110px">阶段</th><th>项目 / 里程碑</th><th style="width:90px">类别</th><th style="width:150px">核验时间</th></tr></thead>
+      <tbody id="drillBody"></tbody>
+    </table>
+    <div id="drillEmpty" class="hint hide">该口径下暂无已核验成立的项目。</div>
+  </section>
+
+  <section>
+    <h2>项目时间线：每个项目究竟走到了哪一步</h2>
+    <div id="timelines"></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>弱凭证剔除清单</h2>
+      <p class="hint">“交换过名片”不得包装成合作成果。下列事项有材料但不构成任何阶段。</p>
+      <div id="weakList"></div>
+    </section>
+    <section>
+      <h2>撤回项目（只终止后续动作）</h2>
+      <p class="hint">已发生的接洽、签约事实保留；未完成动作终止并记录原因。</p>
+      <div id="withdrawnList"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>意向执行管理</h2>
+    <p class="hint">只有各方确认完整且尽调到齐的意向才能进入执行；重复项目不得产生第二个有效版本。改版会挂起旧版未完成承诺。</p>
+    <div class="row" style="margin-bottom:10px">
+      <select id="intentPick" style="min-width:320px"></select>
+      <span id="intentBadge"></span>
+    </div>
+    <div id="intentDetail"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const state = { catalog: null, report: null, parties: [], intents: [], viewer: 'p-spec', stageFilter: null, catFilter: null, expanded: new Set() };
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function toast(msg, isErr) { const t = $('#toast'); t.textContent = msg; t.className = isErr ? 'toast err' : 'toast'; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), 4200); }
+async function api(path, opts) {
+  const v = state.viewer ? `?viewerPartyId=${encodeURIComponent(state.viewer)}` : '';
+  const r = await fetch(path + (path.includes('?') ? '&viewerPartyId=' + encodeURIComponent(state.viewer) : v), opts || {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error ? j.error.message : ('HTTP ' + r.status));
+  return j;
+}
+function post(path, body) { return api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }); }
+
+function glyphFor(s) { return { done: '●', open: '◐', pending: '○', blocked: '⊘', terminated: '■', not_started: '·' }[s] || '·'; }
+function stateClass(s) { return 's-' + (s === 'not_started' ? 'pending' : s); }
+
+async function loadAll() {
+  const q = new URLSearchParams({ viewerPartyId: state.viewer });
+  const [catalog, report, parties, intents] = await Promise.all([
+    fetch('/api/catalog').then((r) => r.json()),
+    fetch('/api/report').then((r) => r.json()),
+    fetch('/api/parties').then((r) => r.json()),
+    fetch('/api/intents?' + q).then((r) => r.json())
+  ]);
+  state.catalog = catalog; state.report = report; state.parties = parties; state.intents = intents;
+  render();
+}
+
+function render() {
+  renderViewer();
+  renderKpis();
+  renderFunnel();
+  renderCats();
+  renderDrill();
+  renderTimelines();
+  renderWeak();
+  renderWithdrawn();
+  renderIntentPanel();
+}
+
+function renderViewer() {
+  const sel = $('#viewer');
+  if (!sel.options.length) {
+    for (const p of state.parties) {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = `${p.name}（${state.catalog.roleLabels[p.role]}）`;
+      sel.appendChild(o);
+    }
+    sel.onchange = () => { state.viewer = sel.value; loadAll(); };
+  }
+  sel.value = state.viewer;
+  const me = state.parties.find((p) => p.id === state.viewer);
+  $('#viewerHint').textContent = me && me.role === 'specialist'
+    ? '专员视角：可见秘密材料元数据，正文引用遮蔽'
+    : '参与方视角：仅可见本方及被显式授权的商业秘密';
+}
+
+function renderKpis() {
+  const max = Math.max(1, ...state.report.stages.map((s) => s.count));
+  const boxes = state.report.stages.map((s, i) => `
+    <div class="kpi">
+      <div class="l"><span class="swatch" style="background:var(--stage-${i + 1})"></span>${esc(s.stageLabel)}</div>
+      <div class="n">${s.count}</div>
+    </div>`).join('');
+  $('#kpis').innerHTML = boxes + `
+    <div class="kpi"><div class="l">有效执行项目</div><div class="n">${state.report.totals.activeProjects}</div></div>`;
+}
+
+function renderFunnel() {
+  const max = Math.max(1, ...state.report.stages.map((s) => s.count));
+  $('#funnel').innerHTML = state.report.stages.map((s, i) => `
+    <div class="frow ${state.stageFilter === s.stage ? 'active' : ''}">
+      <div class="flabel">${esc(s.stageLabel)}</div>
+      <button class="ftrack" type="button" data-stage="${s.stage}" title="筛选该阶段明细">
+        <div class="fbar" style="width:${Math.max(3, (s.count / max) * 100)}%">${s.count > 0 ? s.count + ' 个项目' : ''}</div>
+      </button>
+      <div class="fcount">${s.count}</div>
+    </div>`).join('');
+  $('#funnel').querySelectorAll('button.ftrack').forEach((b) => {
+    b.onclick = () => { state.stageFilter = state.stageFilter === b.dataset.stage ? null : b.dataset.stage; state.catFilter = null; renderDrill(); syncActive(); };
+  });
+}
+function syncActive() {
+  document.querySelectorAll('.frow').forEach((r) => r.classList.toggle('active', r.querySelector('button').dataset.stage === state.stageFilter));
+  document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.cat === state.catFilter && c.dataset.stage === state.stageFilter));
+}
+
+function renderCats() {
+  const by = state.report.byCategory;
+  $('#cats').innerHTML = Object.values(by).map((c) => `
+    <div class="cat">
+      <div class="name"><span class="dot" style="background:var(--cat-${c.category})"></span>${esc(c.categoryLabel)}</div>
+      <div class="chips">${c.stages.map((s) => `<button class="chip ${state.catFilter === c.category && state.stageFilter === s.stage ? 'on' : ''}" data-cat="${c.category}" data-stage="${s.stage}">${esc(s.stageLabel)} <b>${s.count}</b></button>`).join('')}</div>
+    </div>`).join('');
+  document.querySelectorAll('.chip').forEach((c) => {
+    c.onclick = () => {
+      state.catFilter = c.dataset.cat; state.stageFilter = c.dataset.stage; renderDrill(); syncActive();
+    };
+  });
+}
+
+function drillRows() {
+  let rows = [];
+  for (const s of state.report.stages) for (const it of s.items) rows.push(it);
+  if (state.stageFilter) rows = rows.filter((r) => r.stage === state.stageFilter);
+  if (state.catFilter) rows = rows.filter((r) => r.category === state.catFilter);
+  return rows;
+}
+
+function evidenceTags(item) {
+  return item.evidence.map((e) => {
+    const cls = e.weak ? 'weak' : (e.supportsStage ? 'ok' : '');
+    const mark = e.weak ? '弱凭证·不计' : (e.supportsStage ? '支撑本阶段' : '不支撑本阶段');
+    return `<span class="tag ${cls}" title="${esc(e.ref)} · 上传：${esc(e.uploadedBy.name)}">${esc(e.typeLabel)}：${esc(e.ref || '无编号')}（${mark}）</span>`;
+  }).join('');
+}
+
+function drillDetailHtml(it) {
+  const pre = it.prerequisites.length
+    ? it.prerequisites.map((p) => `<span class="tag ${p.met ? 'ok' : 'weak'}">${p.met ? '✓' : '✗'} 前置：${esc(p.refLabel || p.description)}${p.description ? '——' + esc(p.description) : ''}</span>`).join('')
+    : '<span class="muted">无前置条件</span>';
+  const cmts = it.commitments.length
+    ? it.commitments.map((c) => `<div>· ${esc(c.party.name)}：${esc(c.text)}</div>`).join('')
+    : '<span class="muted">无登记承诺</span>';
+  return `<dl class="kv">
+    <dt>责任主体</dt><dd>${it.responsibleParties.map((p) => `<span class="tag">${esc(p.name)}（${esc(p.roleLabel)}）</span>`).join('') || '<span class="muted">未指派</span>'}</dd>
+    <dt>适用范围</dt><dd>${esc(it.scope)}</dd>
+    <dt>前置条件</dt><dd>${pre}</dd>
+    <dt>证据</dt><dd>${evidenceTags(it) || '<span class="muted">无证据</span>'}<div class="party-line">核验时间：${esc(it.verifiedAt || '—')}　版本 v${it.version}</div></dd>
+    <dt>对应承诺</dt><dd>${cmts}</dd>
+  </dl>`;
+}
+
+function renderDrill() {
+  const rows = drillRows();
+  $('#drillTitle').textContent = state.stageFilter
+    ? `阶段明细下钻：${state.catalog.stageLabels[state.stageFilter]}${state.catFilter ? ' · ' + state.catalog.categoryLabels[state.catFilter] : ''}（${rows.length}）`
+    : '阶段明细下钻（全部阶段）';
+  $('#drillHint').textContent = '点击任意行展开：责任主体、适用范围、前置条件满足情况、逐条证据及其是否足以支撑该阶段。';
+  $('#drillEmpty').classList.toggle('hide', rows.length > 0);
+  $('#drillBody').innerHTML = rows.map((it) => {
+    const open = state.expanded.has(it.milestoneId);
+    return `<tr class="item" data-id="${it.milestoneId}">
+        <td>${esc(it.stageLabel)}</td>
+        <td><b>${esc(it.projectTitle)}</b><div class="party-line">${esc(it.milestoneTitle)}</div></td>
+        <td><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--cat-${it.category});margin-right:5px"></span>${esc(it.categoryLabel)}</td>
+        <td class="party-line">${esc((it.verifiedAt || '').slice(0, 10))}</td>
+      </tr>
+      <tr class="drill ${open ? '' : 'hide'}" data-parent="${it.milestoneId}"><td colspan="4">${drillDetailHtml(it)}</td></tr>`;
+  }).join('');
+  $('#drillBody').querySelectorAll('tr.item').forEach((tr) => {
+    tr.onclick = () => {
+      const id = tr.dataset.id;
+      state.expanded.has(id) ? state.expanded.delete(id) : state.expanded.add(id);
+      renderDrill();
+    };
+  });
+}
+
+function renderTimelines() {
+  $('#timelines').innerHTML = state.report.projects.map((p) => {
+    const cells = p.stages.map((s) => `
+      <div class="tcell is-${s.state === 'not_started' ? 'pending' : s.state}" title="${esc(s.stateLabel)}">
+        <div class="ts ${stateClass(s.state)}"><span class="glyph">${glyphFor(s.state)}</span>${esc(s.stageLabel)}</div>
+        <div class="tt">${esc(s.stateLabel)}${s.weakOnly ? '<div class="weak s-terminated">弱凭证·不计</div>' : ''}</div>
+        ${s.milestoneId ? `<button class="small" data-ms="${s.milestoneId}" type="button" style="margin-top:5px">查看/操作</button>` : ''}
+      </div>`).join('');
+    return `<div data-project-root style="margin:14px 0">
+      <div class="seg-title">
+        <b>${esc(p.title)}</b>
+        <span class="ver">${esc(p.categoryLabel)} · v${p.currentVersion} · ${esc(p.projectKey)}</span>
+        <span class="badge ${p.status}">${esc(p.statusLabel)}</span>
+        <span class="ver">已核实最远阶段：<b>${esc(p.highestReachedStageLabel)}</b></span>
+      </div>
+      ${p.changesNote ? `<div class="callout note">版本变更：${esc(p.changesNote)}</div>` : ''}
+      ${(p.priorVersions || []).map((pv) => pv.affectedMilestones.length ? `
+        <details class="callout note" style="padding:8px 12px">
+          <summary>v${pv.version}（${esc(pv.statusLabel)}）有 ${pv.affectedMilestones.length} 个未完成承诺受版本变化影响 — 展开</summary>
+          <div style="margin-top:6px">${pv.affectedMilestones.map((am) =>
+            `<div>· <span class="tag ${am.status === 'blocked' ? '' : 'weak'}">${esc(am.stageLabel)}</span> ${esc(am.title)}${am.affectedByVersion ? `（受 v${am.affectedByVersion} 影响）` : ''}<div class="party-line">${esc(am.reason || '')}</div></div>`).join('')}</div>
+        </details>` : '').join('')}
+      ${p.withdrawnReason ? `<div class="callout weak">撤回原因：${esc(p.withdrawnReason)}</div>` : ''}
+      <div class="timeline">${cells}</div>
+      <div class="ms-actions" data-project="${esc(p.projectKey)}"></div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('button[data-ms]').forEach((b) => {
+    b.onclick = () => {
+      const found = findMilestone(b.dataset.ms);
+      if (found) showMilestoneActions(found, b);
+    };
+  });
+}
+
+function findMilestone(msId) {
+  // 在报告时间线里找到下钻数据
+  for (const p of state.report.projects) {
+    for (const s of p.stages) {
+      if (s.milestoneId === msId) {
+        const intent = state.intents.find((i) => i.id === s.drill.intentId);
+        return { intent, ms: s.drill, stageState: s };
+      }
+    }
+  }
+  return null;
+}
+
+function showMilestoneActions({ intent, ms, stageState }, btn) {
+  const opts = (state.catalog.stageRequiredEvidence[ms.stage] || []).map((t) => `<option value="${t}">${state.catalog.evidenceLabels[t]}</option>`).join('');
+  const html = `<div class="callout note">
+    <b>${esc(ms.milestoneTitle)}</b>（${esc(ms.stageLabel)}，当前：${esc(stageState.stateLabel)}）
+    <div class="row" style="margin-top:8px">
+      <select id="evType"><option value="business_card">名片（弱凭证·永不计入）</option>${opts}<option value="other">其他材料</option></select>
+      <input id="evRef" placeholder="证据编号，如 MM-20260926-01" style="min-width:200px">
+      <button class="small primary" id="evAdd" data-ms="${ms.milestoneId}">以当前身份提交证据</button>
+      <button class="small" id="evVerify" data-ms="${ms.milestoneId}">专员核验成立</button>
+    </div>
+    <div class="party-line" style="margin-top:6px">${drillDetailHtml(ms)}</div>
+  </div>`;
+  // 挂到该项目自己的操作区（沿按钮向上找到项目根节点）
+  const container = btn.closest('[data-project-root]').querySelector('.ms-actions');
+  container.innerHTML = html;
+  container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('#evAdd').onclick = async () => {
+    try {
+      await post(`/api/milestones/${ms.milestoneId}/evidence`, {
+        type: $('#evType').value, ref: $('#evRef').value, partyId: state.viewer, note: '后台手工提交'
+      });
+      toast('证据已登记（若为名片将标注为弱凭证，不支撑阶段）');
+      await loadAll();
+      const freshBtn = document.querySelector(`button[data-ms="${ms.milestoneId}"]`);
+      const again = findMilestone(ms.milestoneId);
+      if (again && freshBtn) showMilestoneActions(again, freshBtn);
+    } catch (e) { toast(e.message, true); }
+  };
+  $('#evVerify').onclick = async () => {
+    try { await post(`/api/milestones/${ms.milestoneId}/verify`, { partyId: 'p-spec' }); toast('里程碑已核验成立'); await loadAll(); }
+    catch (e) { toast(e.message, true); }
+  };
+}
+
+function renderWeak() {
+  const list = state.report.weakEvidenceRejections;
+  $('#weakList').innerHTML = list.length ? list.map((w) => `
+    <div class="callout weak">
+      <b>${esc(w.projectTitle)}</b>（v${w.version}）— ${esc(w.stageLabel)} 不计入<br>
+      <span class="party-line">${esc(w.reason)}</span>
+      <div style="margin-top:5px">${w.evidence.map((e) => `<span class="tag ${e.weak ? 'weak' : ''}">${esc(e.typeLabel)} ${esc(e.ref || '')}</span>`).join('')}</div>
+    </div>`).join('')
+    : '<div class="hint">无弱凭证混入。</div>';
+}
+
+function renderWithdrawn() {
+  const list = state.report.withdrawnProjects;
+  $('#withdrawnList').innerHTML = list.length ? list.map((w) => `
+    <div class="callout note">
+      <b>${esc(w.title)}</b>（${esc(w.categoryLabel)}，撤回于 ${esc((w.withdrawnAt || '').slice(0, 10))}）<br>
+      <span class="party-line">撤回方：${esc(w.withdrawnBy ? w.withdrawnBy.name : '—')}</span>
+      <div style="margin-top:5px">保留事实：${w.factsRetained.map((f) => `<span class="tag ok">${esc(f)}</span>`).join('') || '无'}</div>
+      <div>终止动作：${w.nextStepsTerminated.map((m) => `<span class="tag weak">${esc(m.stageLabel)}：${esc(m.title)}</span>`).join('') || '无'}</div>
+      <div class="party-line" style="margin-top:4px">原因：${esc(w.reason)}</div>
+    </div>`).join('')
+    : '<div class="hint">暂无撤回项目。</div>';
+}
+
+function renderIntentPanel() {
+  const sel = $('#intentPick');
+  const prev = sel.value || state.pickNew || (state.intents[0] && state.intents[0].id) || '';
+  sel.innerHTML = state.intents.map((i) => `<option value="${i.id}">${i.title}（v${i.version} · ${state.catalog.intentStatusLabels[i.status]}）</option>`).join('');
+  sel.value = state.intents.some((i) => i.id === prev) ? prev : (state.intents[0] && state.intents[0].id) || '';
+  sel.onchange = () => renderIntentDetail();
+  renderIntentDetail();
+}
+
+function renderIntentDetail() {
+  const id = $('#intentPick').value;
+  const it = state.intents.find((x) => x.id === id);
+  if (!it) { $('#intentDetail').innerHTML = '<div class="hint">暂无意向。</div>'; return; }
+  $('#intentBadge').innerHTML = `<span class="badge ${it.status}">${state.catalog.intentStatusLabels[it.status]}</span>`;
+
+  const partyName = (pid) => { const p = state.parties.find((x) => x.id === pid); return p ? p.name : pid; };
+  const conf = it.participantPartyIds.map((pid) => {
+    const c = it.confirmations[pid];
+    return `<span class="tag ${c ? 'ok' : 'weak'}">${c ? '✓ ' : '✗ '}${esc(partyName(pid))}${c ? ' ' + esc(c.at.slice(0, 10)) : '（待确认）'}</span>`;
+  }).join('');
+  const dd = (it.ddRequired || []).map((d) => {
+    const m = d.materialId ? it.materials.find((x) => x.id === d.materialId) : null;
+    return `<tr><td>${esc(d.title)}</td><td>${esc(partyName(d.ownerPartyId))}</td>
+      <td>${d.materialId ? '<span class="tag ok">已到齐</span>' : '<span class="tag weak">缺失·阻止激活</span>'}</td></tr>`;
+  }).join('');
+  const mats = it.materials.map((m) => `<tr>
+      <td>${esc(m.name)}${m._secretMasked ? ' <span class="tag secret">商业秘密·正文遮蔽</span>' : ''}</td>
+      <td>${esc(partyName(m.ownerPartyId))}</td>
+      <td>${m.level === 'secret' ? '<span class="tag secret">商业秘密</span>' : '普通'}</td>
+      <td class="party-line">${m._secretMasked ? '【不可见】' : esc(m.ref || '—')}　可见：${m.level === 'secret' ? (m.visibleToPartyIds || []).map(partyName).join('、') : '全部参与方'}</td>
+    </tr>`).join('');
+
+  const participantChecks = it.participantPartyIds
+    .filter((pid) => state.viewer !== pid).map((pid) => `<label class="f" style="display:inline-block;margin-right:8px"><input type="checkbox" class="vis" value="${pid}" checked> ${esc(partyName(pid))}</label>`).join('');
+
+  $('#intentDetail').innerHTML = `
+    <div class="grid2">
+      <div>
+        <h3>多方确认（同一内容指纹，缺一不可）</h3>
+        <div>${conf}</div>
+        <div class="row" style="margin-top:8px">
+          <button class="small primary" id="btnConfirm" ${it.status !== 'draft' ? 'disabled' : ''}>以“${esc(partyName(state.viewer))}”身份确认</button>
+          <button class="small danger" id="btnWithdraw" ${it.status === 'withdrawn' || it.status === 'superseded' ? 'disabled' : ''}>撤回（仅终止后续动作）</button>
+        </div>
+        <h3>承诺清单</h3>
+        <table><thead><tr><th>责任主体</th><th>承诺内容</th></tr></thead><tbody>
+          ${it.commitments.map((c) => `<tr><td class="party-line">${esc(partyName(c.partyId))}</td><td>${esc(c.text)}</td></tr>`).join('')}
+        </tbody></table>
+        <h3>尽调清单（全部到齐才能进入执行）</h3>
+        <table><thead><tr><th>材料项</th><th>责任方</th><th>状态</th></tr></thead><tbody>${dd || '<tr><td colspan="3" class="hint">无要求</td></tr>'}</tbody></table>
+      </div>
+      <div>
+        <h3>尽调材料库（按参与方隔离）</h3>
+        <table><thead><tr><th>名称</th><th>所有方</th><th>密级</th><th>引用与可见范围</th></tr></thead><tbody>${mats || '<tr><td colspan="4" class="hint">暂无材料</td></tr>'}</tbody></table>
+        <h3>提交材料（以当前身份）</h3>
+        <label class="f">材料名称</label><input id="mName" style="width:100%">
+        <div class="row" style="margin-top:6px">
+          <select id="mLevel"><option value="normal">普通（参与方可见）</option><option value="secret">商业秘密（按参与方隔离）</option></select>
+          <input id="mRef" placeholder="档案编号" style="flex:1">
+        </div>
+        <div id="visBox" class="hide" style="margin-top:6px"><label class="f">商业秘密授权可见的参与方</label>${participantChecks}</div>
+        <button class="small primary" id="btnMat" style="margin-top:8px">提交材料并自动匹配尽调项</button>
+
+        <h3>登记新版本（旧版未完成承诺将挂起）</h3>
+        <label class="f">新版本标题</label><input id="vTitle" value="${esc(it.title)}" style="width:100%">
+        <label class="f">变更说明（将标注在受影响承诺上）</label><textarea id="vNote" rows="2" style="width:100%" placeholder="如：适用范围由全院缩减为康复一科，数量 500→80"></textarea>
+        <label class="f">新承诺（每行：责任方ID|内容；留空沿用上一版承诺会被清空，请重新列明）</label>
+        <textarea id="vCmts" rows="3" style="width:100%">${it.commitments.map((c) => `${c.partyId}|${c.text}`).join('\n')}</textarea>
+        <button class="small" id="btnVer" ${it.status === 'draft' || it.status === 'withdrawn' || it.status === 'superseded' ? 'disabled' : ''}>登记新版本草案</button>
+      </div>
+    </div>`;
+
+  $('#mLevel').onchange = (e) => $('#visBox').classList.toggle('hide', e.target.value !== 'secret');
+  $('#btnConfirm').onclick = async () => {
+    try { const r = await post(`/api/intents/${it.id}/confirm`, { partyId: state.viewer }); toast(r.activated ? '各方确认完整，意向已进入执行' : '已记录确认，等待其余方确认或尽调到齐'); await loadAll(); }
+    catch (e) { toast(e.message, true); }
+  };
+  $('#btnWithdraw').onclick = async () => {
+    const reason = prompt('撤回原因（只终止后续动作，已完成事实保留）：', '');
+    if (reason === null) return;
+    try { await post(`/api/intents/${it.id}/withdraw`, { partyId: state.viewer, reason }); toast('已撤回：后续未完成动作终止，历史事实保留'); await loadAll(); }
+    catch (e) { toast(e.message, true); }
+  };
+  $('#btnMat').onclick = async () => {
+    const vis = [...document.querySelectorAll('.vis:checked')].map((x) => x.value);
+    try {
+      await post('/api/materials', {
+        intentId: it.id, ownerPartyId: state.viewer, name: $('#mName').value,
+        level: $('#mLevel').value, ref: $('#mRef').value, visibleToPartyIds: vis
+      });
+      toast('材料已提交（商业秘密已按勾选参与方隔离）'); await loadAll();
+    } catch (e) { toast(e.message, true); }
+  };
+  $('#btnVer').onclick = async () => {
+    const commitments = $('#vCmts').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      const [partyId, ...rest] = l.split('|');
+      return { partyId: partyId.trim(), text: rest.join('|').trim() };
+    });
+    try {
+      const r = await post(`/api/intents/${it.id}/new-version`, {
+        title: $('#vTitle').value, changesNote: $('#vNote').value, commitments
+      });
+      toast(`已生成 v${r.newIntent.version} 草案；${r.affectedMilestoneIds.length} 个旧版未完成里程碑已挂起，需在新版重新确认`);
+      state.pickNew = r.newIntent.id; await loadAll();
+      delete state.pickNew;
+    } catch (e) { toast(e.message, true); }
+  };
+}
+
+$('#themeBtn').onclick = () => {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+};
+
+loadAll().catch((e) => toast('加载失败：' + e.message, true));
+</script>
+</body>
+</html>
